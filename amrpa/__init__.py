@@ -32,6 +32,7 @@ from .model import AMRPAModel
 from .models.qa_model import AMRPAForQA
 from .adapters.encoder import apply_amrpa_to_encoder, reset_encoder
 from .adapters.decoder import apply_amrpa_to_decoder, reset_decoder
+from .utils import print_flops_summary, plot_flops_comparison
 from .training import (
     PreprocessedQADataset,
     train_epoch,
@@ -39,6 +40,7 @@ from .training import (
     build_optimizer,
     compute_exact_match,
     compute_f1,
+    compute_rouge_l,
     normalize_answer,
     get_best_span
 )
@@ -65,6 +67,10 @@ __all__ = [
     'build_optimizer',
     'compute_exact_match',
     'compute_f1',
+    'compute_rouge_l',
     'normalize_answer',
     'get_best_span',
+    'print_flops_summary',
+    'plot_flops_comparison',
+    'compute_rouge_l',
 ]
