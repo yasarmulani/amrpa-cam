@@ -115,18 +115,32 @@ class DecoderAMRPALayer(nn.Module):
 
         if attention_mask is not None:
             if attention_mask.dim() == 4:
-                # Shape: (batch, 1, seq, kv_seq) → add to (batch*n_heads, seq, kv_seq)
-                mask_exp = attention_mask.expand(
-                    batch_size, self.num_heads, seq_len, kv_seq_len
-                ).reshape(batch_size * self.num_heads, seq_len, kv_seq_len)
-                attn_scores = attn_scores + mask_exp
+                # (batch, 1, seq, kv_seq) → (batch, seq, kv_seq)
+                attn_scores = attn_scores + attention_mask[:, 0, :seq_len, :kv_seq_len]
+            elif attention_mask.dim() == 3:
+                # (batch, seq, kv_seq) → direct add
+                attn_scores = attn_scores + attention_mask[:, :seq_len, :kv_seq_len]
             elif attention_mask.dim() == 2:
-                # Shape: (batch, kv_seq) → (batch*n_heads, 1, kv_seq)
-                mask_exp = attention_mask[:, None, None, :].expand(
-                    batch_size, self.num_heads, seq_len, kv_seq_len
-                ).reshape(batch_size * self.num_heads, seq_len, kv_seq_len)
-                attn_scores = attn_scores + mask_exp
-        
+                # (batch, kv_seq) → (batch, 1, kv_seq)
+                attn_scores = attn_scores + attention_mask[:, None, :kv_seq_len]
+
+
+        #2nd fix
+        # if attention_mask is not None:
+        #     if attention_mask.dim() == 4:
+        #         # Shape: (batch, 1, seq, kv_seq) → add to (batch*n_heads, seq, kv_seq)
+        #         mask_exp = attention_mask.expand(
+        #             batch_size, self.num_heads, seq_len, kv_seq_len
+        #         ).reshape(batch_size * self.num_heads, seq_len, kv_seq_len)
+        #         attn_scores = attn_scores + mask_exp
+        #     elif attention_mask.dim() == 2:
+        #         # Shape: (batch, kv_seq) → (batch*n_heads, 1, kv_seq)
+        #         mask_exp = attention_mask[:, None, None, :].expand(
+        #             batch_size, self.num_heads, seq_len, kv_seq_len
+        #         ).reshape(batch_size * self.num_heads, seq_len, kv_seq_len)
+        #         attn_scores = attn_scores + mask_exp
+
+        #original code
         # if attention_mask is not None:
         #     if attention_mask.dim() == 4:
         #         mask_exp = attention_mask.expand(
