@@ -185,8 +185,11 @@ class DecoderAMRPALayer(nn.Module):
         output = self.original.c_proj(context)
         output = self.original.resid_dropout(output)
 
-        self.last_metrics = {k: v.detach() for k, v in cam_metrics.items()}
+        #original code
+        # self.last_metrics = {k: v.detach() for k, v in cam_metrics.items()}
 
+        self.last_metrics = {k: v.detach().cpu() for k, v in cam_metrics.items()}
+        
         outputs = (output, present)
         if output_attentions:
             outputs += (final_attn,)
