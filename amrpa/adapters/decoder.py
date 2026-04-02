@@ -115,10 +115,24 @@ class DecoderAMRPALayer(nn.Module):
 
         if attention_mask is not None:
             if attention_mask.dim() == 4:
+                # Shape: (batch, 1, seq, kv_seq) → add to (batch*n_heads, seq, kv_seq)
                 mask_exp = attention_mask.expand(
                     batch_size, self.num_heads, seq_len, kv_seq_len
-                ).reshape(batch_size, seq_len, kv_seq_len)
+                ).reshape(batch_size * self.num_heads, seq_len, kv_seq_len)
                 attn_scores = attn_scores + mask_exp
+            elif attention_mask.dim() == 2:
+                # Shape: (batch, kv_seq) → (batch*n_heads, 1, kv_seq)
+                mask_exp = attention_mask[:, None, None, :].expand(
+                    batch_size, self.num_heads, seq_len, kv_seq_len
+                ).reshape(batch_size * self.num_heads, seq_len, kv_seq_len)
+                attn_scores = attn_scores + mask_exp
+        
+        # if attention_mask is not None:
+        #     if attention_mask.dim() == 4:
+        #         mask_exp = attention_mask.expand(
+        #             batch_size, self.num_heads, seq_len, kv_seq_len
+        #         ).reshape(batch_size, seq_len, kv_seq_len)
+        #         attn_scores = attn_scores + mask_exp
 
         # Build causal mask for AMRPA memory bias
         causal_mask = torch.triu(
