@@ -1,94 +1,93 @@
 """
 AMRPAModel — Universal Entry Point
 ------------------------------------
-Single class that routes to correct adapter based on config.arch.
+Single class that wraps any supported model with AMRPA.
+Uses registry to detect architecture automatically.
 
 Usage:
     from amrpa import AMRPAModel, AMRPAConfig
 
-    # Encoder
+    # Works for ANY supported model
     config = AMRPAConfig.from_hf_config(model.config, arch='encoder')
     model, state = AMRPAModel.wrap(model, config)
 
-    # Decoder
-    config = AMRPAConfig.from_hf_config(model.config, arch='decoder')
-    model, state = AMRPAModel.wrap(model, config)
-
-    # In training loop
-    state.reset()          # call before every forward pass
-    outputs = model(...)
-    metrics = state.get_metrics()
+    for batch in dataloader:
+        state.reset()
+        outputs = model(**batch)
+        metrics = state.get_metrics()
 """
 
 import torch.nn as nn
 from typing import Tuple, Union
 
 from .config import AMRPAConfig
-from .adapters.encoder import (
-    apply_amrpa_to_encoder, EncoderAMRPAState
-)
-from .adapters.decoder import (
-    apply_amrpa_to_decoder, DecoderAMRPAState
-)
-
-AMRPAState = Union[EncoderAMRPAState, DecoderAMRPAState]
+from .adapters.universal import apply_amrpa_universal, UniversalAMRPAState
+from .adapters.registry import is_supported, get_arch
 
 
 class AMRPAModel:
     """
     Universal AMRPA wrapper.
-
-    Does not subclass nn.Module — patches the existing model in-place.
-    The user's training loop stays completely unchanged.
+    Patches any supported model in-place.
+    Training loop stays completely unchanged.
     """
 
     @staticmethod
     def wrap(
         model: nn.Module,
         config: AMRPAConfig
-    ) -> Tuple[nn.Module, AMRPAState]:
+    ) -> Tuple[nn.Module, UniversalAMRPAState]:
         """
         Apply AMRPA to any supported model.
 
         Args:
-            model:  Any HuggingFace model
-            config: AMRPAConfig specifying architecture and hyperparameters
+            model:  Any HuggingFace model (encoder, decoder, enc-dec)
+            config: AMRPAConfig — use from_hf_config() for auto-detection
 
         Returns:
-            model:  patched model (same object, modified in-place)
-            state:  state object — call state.reset() before each forward pass
+            model:  patched model
+            state:  call state.reset() before every forward pass
 
-        Example:
-            # Encoder
-            config = AMRPAConfig.for_encoder(
-                d_model=model.config.hidden_size,
-                n_heads=model.config.num_attention_heads
-            )
+        Supported models:
+            Encoder:         roberta, bert, deberta
+            Decoder:         gpt2, gpt_neo, phi, llama, mistral
+            Encoder-Decoder: t5, bart
+
+        Example — Encoder:
+            config = AMRPAConfig.from_hf_config(model.config, arch='encoder')
             model, state = AMRPAModel.wrap(model, config)
 
-            for batch in dataloader:
-                state.reset()
-                outputs = model(**batch)
-                metrics = state.get_metrics()
+        Example — Decoder:
+            config = AMRPAConfig.from_hf_config(model.config, arch='decoder')
+            model, state = AMRPAModel.wrap(model, config)
+
+        Example — Any model auto-detect:
+            model_type = model.config.model_type
+            arch = get_arch(model_type)
+            config = AMRPAConfig.from_hf_config(model.config, arch=arch)
+            model, state = AMRPAModel.wrap(model, config)
         """
-        if config.arch == 'encoder':
-            return apply_amrpa_to_encoder(model, config)
-        elif config.arch == 'decoder':
-            return apply_amrpa_to_decoder(model, config)
-        elif config.arch == 'encoder_decoder':
-            raise NotImplementedError(
-                "encoder_decoder support coming in next release. "
-                "Use arch='encoder' or arch='decoder' for now."
-            )
-        else:
-            raise ValueError(f"Unknown arch: {config.arch}")
+        return apply_amrpa_universal(model, config)
 
     @staticmethod
-    def reset(state: AMRPAState) -> None:
-        """Reset AMRPA memory. Call before every forward pass."""
+    def reset(state: UniversalAMRPAState) -> None:
+        """Reset memory. Call before every forward pass."""
         state.reset()
 
     @staticmethod
-    def get_metrics(state: AMRPAState) -> dict:
+    def get_metrics(state: UniversalAMRPAState) -> dict:
         """Get mechanism metrics from last forward pass."""
         return state.get_metrics()
+
+    @staticmethod
+    def is_supported(model) -> bool:
+        """Check if model is supported."""
+        model_type = model.config.model_type
+        return is_supported(model_type)
+
+    @staticmethod
+    def memory_summary(state: UniversalAMRPAState) -> dict:
+        """Memory usage summary."""
+        if state.cam_bank:
+            return state.cam_bank.summary()
+        return {'arch': state.arch, 'cam': 'not used'}
