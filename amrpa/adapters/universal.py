@@ -244,11 +244,15 @@ class UniversalAMRPALayer(nn.Module):
 
         if self.cam is not None:
             # Decoder: use CAM for compressed memory
-            with torch.no_grad():
-                base_A = F.softmax(
-                    torch.matmul(Q_cam, K_cam.transpose(-2, -1)) * self.scale,
-                    dim=-1
-                )
+            base_A = F.softmax(
+                torch.matmul(Q_cam, K_cam.transpose(-2, -1)) * self.scale,
+                dim=-1
+            ).detach()  # detach base_A only — not the whole graph
+            # with torch.no_grad():
+            #     base_A = F.softmax(
+            #         torch.matmul(Q_cam, K_cam.transpose(-2, -1)) * self.scale,
+            #         dim=-1
+            #     )
             cam_mask = torch.ones(batch_size, seq_len, device=device)
             memory_bias, metrics = self.cam(
                 Q=Q_cam, K=K_cam, V=V_cam,
