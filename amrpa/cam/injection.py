@@ -130,33 +130,7 @@ class CAMInjector(nn.Module):
             score = self.mlp_alpha(alpha_in)             # (batch, 1)
             alpha_scores.append(score)
 
-        # for k_idx, mem in enumerate(reversed(memories), 1):
-        #     decay = self.config.gamma ** k_idx
-        
-        #     # proj_V: (stored_batch, proj_rank, d_k)
-        #     # Trim to current batch size (last batch may be smaller)
-        #     cur_batch = Q_summary.shape[0]
-        #     proj_V = mem.proj_V[:cur_batch]             # trim batch dim
-        #     past_V_summary = proj_V.mean(dim=1) * decay # (cur_batch, d_k)
-        #     mv_list.append(past_V_summary)
-        
-        #     # Alpha input: current Q context + past V summary
-        #     alpha_in = torch.cat([Q_summary, past_V_summary], dim=-1)
-
-        # for k_idx, mem in enumerate(reversed(memories), 1):
-        #     decay = self.config.gamma ** k_idx
-
-        #     # proj_V: (batch, proj_rank, d_k)
-        #     # Summarise past V: mean over proj_rank dim → (batch, d_k)
-        #     past_V_summary = mem.proj_V.mean(dim=1) * decay  # (batch, d_k)
-        #     mv_list.append(past_V_summary)
-
-        #     # Alpha input: current Q context + past V summary
-        #     alpha_in = torch.cat([Q_summary, past_V_summary], dim=-1)
-        #     # (batch, d_k*2)
-        #     score = self.mlp_alpha(alpha_in)   # (batch, 1)
-        #     alpha_scores.append(score)
-
+     
         # Stack and softmax over past steps
         alpha_tensor = torch.cat(alpha_scores, dim=-1)   # (batch, n_past)
         alpha_weights = F.softmax(
