@@ -156,10 +156,13 @@ class CAMCompressor(nn.Module):
         proj_V = proj_V_seq.transpose(1, 2) @ V / (seq + 1e-8)
         # proj_V: (batch, proj_rank, d_k)
 
+
         return CompressedMemory(
-            proj_K=proj_K,
-            proj_V=proj_V,
-            importance=importance.detach(),  # kept for analysis only
+            proj_K=proj_K.detach(),
+            proj_V=proj_V.detach(),
+            importance=importance.detach(),
             step=step,
             seq_len=seq
         )
+
+  
