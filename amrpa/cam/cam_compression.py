@@ -114,6 +114,7 @@ class CAMCompressor(nn.Module):
         # Learnable projection: maps d_k → proj_rank subspace
         # One projection shared for K and V (they live in same space)
         self.proj_matrix = nn.Linear(config.d_k, config.proj_rank, bias=False)
+        nn.init.xavier_uniform_(self.proj_matrix.weight)
 
         # Orthogonal init: preserves distances in projected space
         nn.init.orthogonal_(self.proj_matrix.weight)
@@ -151,11 +152,9 @@ class CAMCompressor(nn.Module):
         # Collapse seq dimension via sum: (batch, seq, proj_rank) → (batch, proj_rank, d_k)
         # This gives us a fixed-size summary independent of seq length
         # Transpose d_k back: we need (batch, proj_rank, d_k) for injection
-        proj_K = proj_K_seq.transpose(1, 2) @ K / (seq + 1e-8)
-        # proj_K: (batch, proj_rank, d_k)
-        proj_V = proj_V_seq.transpose(1, 2) @ V / (seq + 1e-8)
-        # proj_V: (batch, proj_rank, d_k)
-
+        proj_K = proj_K_seq.transpose(1, 2) @ K
+        proj_V = proj_V_seq.transpose(1, 2) @ V
+       
 
         return CompressedMemory(
             proj_K=proj_K.detach(),
