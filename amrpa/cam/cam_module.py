@@ -120,11 +120,15 @@ class CAMModule(nn.Module):
             "CAMModule: memory bank not set. Call set_memory_bank() first."
 
         # ── 1. Retrieve stored memories ──────────────────────────────────
-        memories = self._bank.get_last_k(
-            layer_idx=self.layer_idx,
-            k=self.config.window_size,
-            side=side
-        )
+        # Retrieve from all previous AMRPA layers (cross-layer memory)
+        memories = []
+        for prev_idx in range(self.layer_idx):
+            prev_mems = self._bank.get(layer_idx=prev_idx)
+            memories.extend(prev_mems)
+        # Cap to window size, keep most recent
+        if len(memories) > self.config.window_size:
+            memories = memories[-self.config.window_size:]
+   
 
         # ── 2. Inject: compute memory bias ───────────────────────────────
         memory_bias, metrics = self.injector(
