@@ -121,7 +121,7 @@ class CAMInjector(nn.Module):
             # Trim to current batch size (last batch may be smaller)
             cur_batch = Q_summary.shape[0]
             proj_V = mem.proj_V[:cur_batch]              # trim batch dim
-            past_V_summary = proj_V.mean(dim=1) * decay  # (cur_batch, d_k)
+            past_V_summary = proj_V.mean(dim=1) * proj_V.shape[1] * decay        # (cur_batch, d_k)
             mv_list.append(past_V_summary)
         
             # Alpha input: current Q context + past V summary
