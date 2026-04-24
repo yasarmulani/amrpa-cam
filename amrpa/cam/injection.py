@@ -152,7 +152,12 @@ class CAMInjector(nn.Module):
         MV_expanded = MV_summary.unsqueeze(1).expand(-1, seq, -1)
         # (batch, seq, d_k)
 
-        sim = (Q * MV_expanded).sum(dim=-1) / math.sqrt(self.d_k)
+
+
+        Q_norm  = F.normalize(Q, dim=-1)
+        MV_norm = F.normalize(MV_expanded, dim=-1)
+        sim     = (Q_norm * MV_norm).sum(dim=-1)
+
         # (batch, seq)
         G = torch.sigmoid(self.gate_gamma * sim + self.gate_bias)
         # (batch, seq)
