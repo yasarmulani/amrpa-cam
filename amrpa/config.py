@@ -92,7 +92,7 @@ class AMRPAConfig:
     gamma: float = 0.9
     epsilon: float = 0.001
     alpha_temperature: float = 0.25
-    gate_gamma_init: float = 2.0
+    gate_gamma_init: float = 6.0
     gate_bias_init: float = -0.25
     d_mlp: int = 384
 
