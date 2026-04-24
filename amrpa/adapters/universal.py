@@ -268,8 +268,9 @@ class UniversalAMRPALayer(nn.Module):
             )
 
         # Add memory bias
+        # Add memory bias with scaling for meaningful gradient signal
         if memory_bias.shape[-2:] == attn_scores.shape[-2:]:
-            attn_scores = attn_scores + memory_bias
+            attn_scores = attn_scores + memory_bias * 10.0
 
         # ── Final attention + output ──────────────────────────────────────────
         attn_probs = F.softmax(attn_scores, dim=-1)
